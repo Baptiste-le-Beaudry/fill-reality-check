@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from . import __version__
+from .bars import InvalidSymbolError
 from .fills import TradeRule, simulate
 from .inputs import Rules
 from .stats import (block_bootstrap, concentration, cscv_pbo, daily_series, deflated_sharpe,
@@ -78,6 +79,12 @@ def locate_and_simulate(trades: pd.DataFrame, rules: Rules, loader, verbose: boo
                 print(f"{sym}: {len(members)} trades, bars {start:%Y-%m-%d} -> {end:%Y-%m-%d}", flush=True)
             try:
                 bars = loader.load(sym, start, end)
+            except InvalidSymbolError as e:  # refused before any path or URL is built
+                if verbose:
+                    print(f"  refused: {e}", flush=True)
+                for i in members:
+                    rows[i] = {"status": "invalid_symbol", "status_detail": str(e)}
+                continue
             except FileNotFoundError as e:
                 for i in members:
                     rows[i] = {"status": "no_bars", "status_detail": str(e)}

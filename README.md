@@ -191,6 +191,12 @@ López de Prado (2014) and Bailey, Borwein, López de Prado and Zhu (2017).
 
 MIT, see [LICENSE](LICENSE).
 
+Market data: since 2026-08-26 the Binance Vision data (data.binance.vision) is licensed under
+CC BY-NC-SA 4.0. The tool downloads it on your machine for your own personal use; this
+repository does not redistribute any of it (the bar cache is git-ignored).
+
+Security issues: see [SECURITY.md](SECURITY.md).
+
 This tool performs a technical review of a trade simulation. It is not investment
 advice, not a recommendation to trade any asset and not a forecast of returns. Simulated
 or past results do not guarantee future results.

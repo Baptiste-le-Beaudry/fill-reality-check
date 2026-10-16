@@ -12,6 +12,11 @@ Sources
   ``open_time`` column and ``open, high, low, close`` columns (CSV, Parquet, or
   pickle when explicitly allowed: only unpickle files you created yourself).
 
+Symbols are validated before any path or URL is built (``validate_symbol``): only
+``^[A-Z0-9]{2,20}$`` is accepted (optionally restricted further by an allow-list), Windows
+reserved device names are refused, and every cache or local file path is resolved and
+checked to stay inside its base directory.
+
 Every loader returns a DataFrame indexed by tz-aware UTC bar OPEN time with float
 columns ``open, high, low, close``, sorted and de-duplicated.
 """
@@ -20,8 +25,10 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -35,6 +42,40 @@ REST = {"spot": "https://api.binance.com/api/v3/klines", "um": "https://fapi.bin
 ARCHIVE_PATH = {"spot": "spot", "um": "futures/um"}
 COLS = ["open", "high", "low", "close"]
 USER_AGENT = "fill-reality-check/0.1 (+public market data)"
+SYMBOL_RE = re.compile(r"[A-Z0-9]{2,20}")
+# Windows device names: refused as file names even with an extension (CON.npz, COM1-...)
+WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(10)), *(f"LPT{i}" for i in range(10))}
+
+
+class InvalidSymbolError(ValueError):
+    """A symbol that is not a plain exchange symbol (refused before any path or URL is built)."""
+
+
+def validate_symbol(symbol, allowed: Optional[Iterable[str]] = None) -> str:
+    """Return ``symbol`` if it is a plain symbol such as ``BTCUSDT``; raise ``InvalidSymbolError``
+    otherwise. ``allowed``, when given, is an allow-list of accepted symbols."""
+    if not isinstance(symbol, str) or not SYMBOL_RE.fullmatch(symbol):
+        shown = repr(symbol)[:40]
+        raise InvalidSymbolError(f"invalid symbol {shown}: expected 2 to 20 characters A-Z or 0-9 (for example BTCUSDT)")
+    if symbol in WINDOWS_RESERVED:
+        raise InvalidSymbolError(f"invalid symbol {symbol!r}: reserved device name")
+    if allowed is not None and symbol not in set(allowed):
+        raise InvalidSymbolError(f"symbol {symbol!r} is not in the list of supported symbols")
+    return symbol
+
+
+def safe_join(base: Path, *parts: str) -> Path:
+    """Join ``parts`` under ``base`` and check that the resolved path stays inside ``base``."""
+    for part in parts:
+        if not part or part in (".", "..") or ".." in part or any(c in part for c in "/\\:\x00"):
+            raise InvalidSymbolError(f"unsafe path component {part[:40]!r}")
+        if part.split(".")[0].split("-")[0].upper() in WINDOWS_RESERVED:
+            raise InvalidSymbolError(f"unsafe path component {part[:40]!r}: reserved device name")
+    root = Path(base).resolve()
+    path = root.joinpath(*parts).resolve()
+    if path != root and root not in path.parents:
+        raise InvalidSymbolError(f"path escapes {root}: {path}")
+    return path
 
 
 def _to_frame(ms: np.ndarray, ohlc: np.ndarray) -> pd.DataFrame:
@@ -59,11 +100,12 @@ class BinanceArchive:
     """Download-and-cache loader for public Binance 1m klines."""
 
     def __init__(self, market: str = "spot", cache_dir: str | Path = ".frc_cache",
-                 offline: bool = False, verbose: bool = True):
+                 offline: bool = False, verbose: bool = True, allowed_symbols: Optional[Iterable[str]] = None):
         if market not in ARCHIVE_PATH:
             raise ValueError(f"market must be one of {sorted(ARCHIVE_PATH)}")
         self.market, self.offline, self.verbose = market, offline, verbose
         self.cache = Path(cache_dir) / f"binance_{market}_1m"
+        self.allowed_symbols = None if allowed_symbols is None else frozenset(allowed_symbols)
 
     # -- network helpers ------------------------------------------------------------------
     def _get(self, url: str, retries: int = 3) -> Optional[bytes]:
@@ -86,8 +128,12 @@ class BinanceArchive:
         return None
 
     def _archive(self, symbol: str, kind: str, stamp: str) -> Optional[tuple[np.ndarray, np.ndarray]]:
+        validate_symbol(symbol)
+        if kind not in ("monthly", "daily") or not re.fullmatch(r"\d{4}-\d{2}(-\d{2})?", stamp):
+            raise ValueError(f"bad archive request {kind!r} {stamp!r}")
         name = f"{symbol}-1m-{stamp}.zip"
-        url = f"{ARCHIVE}/{ARCHIVE_PATH[self.market]}/{kind}/klines/{symbol}/1m/{name}"
+        q = urllib.parse.quote
+        url = f"{ARCHIVE}/{ARCHIVE_PATH[self.market]}/{kind}/klines/{q(symbol, safe='')}/1m/{q(name, safe='')}"
         blob = self._get(url)
         if blob is None:
             return None
@@ -105,7 +151,9 @@ class BinanceArchive:
         ts, rows = [], []
         cur = start_ms
         while cur < end_ms:
-            url = f"{REST[self.market]}?symbol={symbol}&interval=1m&startTime={cur}&endTime={end_ms - 1}&limit=1000"
+            params = {"symbol": validate_symbol(symbol), "interval": "1m", "startTime": int(cur),
+                      "endTime": int(end_ms) - 1, "limit": 1000}
+            url = f"{REST[self.market]}?{urllib.parse.urlencode(params)}"
             blob = self._get(url)
             data = json.loads(blob) if blob else []
             if not data:
@@ -119,7 +167,8 @@ class BinanceArchive:
 
     # -- month cache ------------------------------------------------------------------
     def _month(self, symbol: str, month: pd.Period) -> pd.DataFrame:
-        path = self.cache / symbol / f"{symbol}-{month}.npz"
+        validate_symbol(symbol, self.allowed_symbols)
+        path = safe_join(self.cache, symbol, f"{symbol}-{month}.npz")
         now = pd.Timestamp.now(tz="UTC")
         complete = month.end_time.tz_localize("UTC") < now - pd.Timedelta(days=2)
         if path.exists():
@@ -151,6 +200,7 @@ class BinanceArchive:
         return _to_frame(*got)
 
     def load(self, symbol: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
+        validate_symbol(symbol, self.allowed_symbols)
         months = pd.period_range(start.tz_convert(None).to_period("M"), end.tz_convert(None).to_period("M"), freq="M")
         frames = [self._month(symbol, m) for m in months]
         frames = [f for f in frames if len(f)]
@@ -164,18 +214,26 @@ class BinanceArchive:
 class LocalBars:
     """Bars from a local directory, one file per symbol (``pattern`` formats ``{symbol}``)."""
 
-    def __init__(self, directory: str | Path, pattern: str = "{symbol}.csv", allow_pickle: bool = False):
+    def __init__(self, directory: str | Path, pattern: str = "{symbol}.csv", allow_pickle: bool = False,
+                 allowed_symbols: Optional[Iterable[str]] = None):
         self.dir, self.pattern, self.allow_pickle = Path(directory), pattern, allow_pickle
+        self.allowed_symbols = None if allowed_symbols is None else frozenset(allowed_symbols)
         self._last: tuple[str, pd.DataFrame] | None = None  # one symbol in memory at a time
 
     def load(self, symbol: str, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
+        validate_symbol(symbol, self.allowed_symbols)
         if self._last is None or self._last[0] != symbol:
             self._last = None
             self._last = (symbol, self._read(symbol))
         return self._last[1].loc[start:end]
 
     def _read(self, symbol: str) -> pd.DataFrame:
-        path = self.dir / self.pattern.format(symbol=symbol)
+        name = self.pattern.format(symbol=validate_symbol(symbol, self.allowed_symbols))
+        # the pattern is the user's own (may contain sub-directories); the symbol is not
+        root = self.dir.resolve()
+        path = (self.dir / name).resolve()
+        if root not in path.parents:
+            raise InvalidSymbolError(f"bar file for {symbol} resolves outside {root}: {path}")
         if not path.exists():
             raise FileNotFoundError(f"no bars for {symbol}: {path}")
         suf = path.suffix.lower()

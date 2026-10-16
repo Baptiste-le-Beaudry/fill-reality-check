@@ -4,6 +4,7 @@ from __future__ import annotations
 import html
 import json
 import math
+import re
 from pathlib import Path
 
 import numpy as np
@@ -390,6 +391,34 @@ def flagged_trades(res: dict) -> pd.DataFrame:
     return t.loc[any_flag, cols]
 
 
+FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+_PLAIN_NUMBER = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")
+
+
+def csv_safe_cell(v):
+    """Neutralise spreadsheet formula injection: a TEXT value that starts with = + - @, a tab
+    or a carriage return gets a leading apostrophe. Numbers (including negative ones, and text
+    that is only a plain number such as "-1") are left as they are."""
+    if isinstance(v, str) and v.startswith(FORMULA_PREFIXES) and not _PLAIN_NUMBER.fullmatch(v):
+        return "'" + v
+    return v
+
+
+def csv_safe(df: pd.DataFrame) -> pd.DataFrame:
+    """Copy of ``df`` with every text cell passed through ``csv_safe_cell`` (numeric columns untouched)."""
+    out = df.copy()
+    for c in out.columns:
+        if out[c].dtype == object or pd.api.types.is_string_dtype(out[c]):
+            out[c] = out[c].map(csv_safe_cell)
+    out.columns = [csv_safe_cell(str(c)) for c in out.columns]
+    return out
+
+
+def write_csv(df: pd.DataFrame, path: str | Path, **kw) -> None:
+    """Every CSV the tool writes goes through here (formula-injection safe)."""
+    csv_safe(df).to_csv(path, **kw)
+
+
 def write_reports(res: dict, out_dir: str | Path, title: str) -> dict:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -397,7 +426,7 @@ def write_reports(res: dict, out_dir: str | Path, title: str) -> dict:
              "json": out / "summary.json"}
     paths["md"].write_text(render_markdown(res, title), encoding="utf-8")
     paths["html"].write_text(render_html(res, title), encoding="utf-8")
-    flagged_trades(res).to_csv(paths["csv"], index=False)
+    write_csv(flagged_trades(res), paths["csv"], index=False)
     paths["json"].write_text(json.dumps(summary_dict(res), indent=2, default=str), encoding="utf-8")
     return paths
 
