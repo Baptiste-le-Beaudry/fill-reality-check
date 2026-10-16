@@ -1,0 +1,559 @@
+{
+  "version": "0.1.0",
+  "n_input": 240,
+  "n_in_stats": 240,
+  "period": [
+    "2024-01-01 07:26:00+00:00",
+    "2024-02-29 22:29:00+00:00"
+  ],
+  "rules": {
+    "fee_per_side_pct": 0.075,
+    "slippage_per_side_pct": 0.0,
+    "stop_pct": 0.5,
+    "target_pct": null,
+    "trail_activation_pct": 0.3,
+    "trail_distance_pct": 0.3,
+    "max_bars": 60,
+    "market": "spot",
+    "one_position_per_symbol": true,
+    "price_tolerance_pct": 0.0,
+    "n_trials": 20,
+    "trials_sr_variance": null,
+    "bootstrap_block_days": 5,
+    "bootstrap_samples": 2000,
+    "seed": 7,
+    "extra_cost_per_side_pct": [
+      0.0,
+      0.01,
+      0.02,
+      0.05,
+      0.1,
+      0.2
+    ],
+    "latency_bars": [
+      0,
+      1,
+      2,
+      5
+    ]
+  },
+  "waterfall": [
+    {
+      "key": "declared",
+      "label": "Declared (prices in your CSV)",
+      "n": 240,
+      "pf": 0.4113551014766473,
+      "mean_net_pct": -0.13176614728308908,
+      "sum_net_pct": -31.623875347941382,
+      "win_rate_pct": 33.33333333333333,
+      "mean_gross_pct": 0.018233852716910925,
+      "breakeven_rt_cost_pct": 0.018233852716910925
+    },
+    {
+      "key": "research",
+      "label": "Re-simulated: stops checked on closes, filled at the stop level",
+      "n": 240,
+      "pf": 0.41135510147664694,
+      "mean_net_pct": -0.13176614728308916,
+      "sum_net_pct": -31.623875347941404,
+      "win_rate_pct": 33.33333333333333,
+      "mean_gross_pct": 0.01823385271691083,
+      "breakeven_rt_cost_pct": 0.01823385271691083
+    },
+    {
+      "key": "close",
+      "label": "Exit at the close that breached the level",
+      "n": 240,
+      "pf": 0.3509199710711766,
+      "mean_net_pct": -0.15740501761996967,
+      "sum_net_pct": -37.77720422879272,
+      "win_rate_pct": 30.416666666666664,
+      "mean_gross_pct": -0.0074050176199696545,
+      "breakeven_rt_cost_pct": -0.0074050176199696545
+    },
+    {
+      "key": "intrabar",
+      "label": "Resting stop intrabar (gap fills at the open)",
+      "n": 240,
+      "pf": 0.33699413684654256,
+      "mean_net_pct": -0.14835230113468129,
+      "sum_net_pct": -35.60455227232351,
+      "win_rate_pct": 31.666666666666664,
+      "mean_gross_pct": 0.0016476988653187318,
+      "breakeven_rt_cost_pct": 0.0016476988653187318
+    },
+    {
+      "key": "exec",
+      "label": "Executable: next-bar open entry + resting stops",
+      "n": 240,
+      "pf": 0.33699962949996615,
+      "mean_net_pct": -0.1483399928411138,
+      "sum_net_pct": -35.60159828186731,
+      "win_rate_pct": 31.666666666666664,
+      "mean_gross_pct": 0.0016600071588862334,
+      "breakeven_rt_cost_pct": 0.0016600071588862334
+    },
+    {
+      "key": "exec_L1",
+      "label": "Executable + 1 bar(s) latency",
+      "n": 240,
+      "pf": 0.29679234363618173,
+      "mean_net_pct": -0.1665969102717338,
+      "sum_net_pct": -39.98325846521611,
+      "win_rate_pct": 27.083333333333332,
+      "mean_gross_pct": -0.016596910271733774,
+      "breakeven_rt_cost_pct": -0.016596910271733774
+    },
+    {
+      "key": "exec_L2",
+      "label": "Executable + 2 bar(s) latency",
+      "n": 240,
+      "pf": 0.3004319307245257,
+      "mean_net_pct": -0.16384117882486696,
+      "sum_net_pct": -39.32188291796807,
+      "win_rate_pct": 31.666666666666664,
+      "mean_gross_pct": -0.01384117882486692,
+      "breakeven_rt_cost_pct": -0.01384117882486692
+    },
+    {
+      "key": "exec_L5",
+      "label": "Executable + 5 bar(s) latency",
+      "n": 240,
+      "pf": 0.36028406955711056,
+      "mean_net_pct": -0.14761466495727255,
+      "sum_net_pct": -35.42751958974541,
+      "win_rate_pct": 31.666666666666664,
+      "mean_gross_pct": 0.0023853350427274927,
+      "breakeven_rt_cost_pct": 0.0023853350427274927
+    }
+  ],
+  "convention_match": {
+    "research": 1.0,
+    "close": 0.6125,
+    "intrabar": 0.7291666666666666,
+    "exec": 0.6208333333333333
+  },
+  "n_changed_research_vs_intrabar": 66,
+  "findings": [
+    {
+      "code": "C5",
+      "category": "certain",
+      "title": "Stops checked on closes but filled at the stop level",
+      "n": 66,
+      "evidence": "Re-simulating your declared rule with stops checked on 1-minute closes and filled at the level reproduces 100.0 % of your declared returns to 1e-6. (Exit at the close: 61.3 %; resting stop: 72.9 %.) That convention cannot be executed: a resting stop fires on intrabar wicks, and a rule that only looks at closes can only exit at the close.",
+      "impact": "PF 0.411 -> 0.351 (exit at the close) -> 0.337 (resting stop). Mean net per trade -0.132 % -> -0.157 % -> -0.148 %. 66 trades change outcome."
+    },
+    {
+      "code": "C6",
+      "category": "certain",
+      "title": "Stop level traded through before the declared exit",
+      "n": 24,
+      "evidence": "The bar lows (highs for shorts) reached the declared stop level at least one minute before the declared exit, yet the position stayed open.",
+      "impact": "If your stop is a resting order, these trades should have been stopped earlier."
+    },
+    {
+      "code": "H1",
+      "category": "hint",
+      "title": "Entries stamped at a bar's open time but filled at its close",
+      "n": 236,
+      "evidence": "The entry price equals the close of the bar whose open time is the entry time. If the signal uses that close, the backtest enters at the very price that created the signal.",
+      "impact": "Entering at the next bar's open instead: PF 0.337 -> 0.337, mean net -0.148 % -> -0.148 %."
+    },
+    {
+      "code": "R1",
+      "category": "risk",
+      "title": "Declared fees below the public base-tier taker fee",
+      "n": 0,
+      "evidence": "Declared 0.075 % per side; Binance spot base tier (hard-coded, verify the current schedule): maker 0.100 %, taker 0.100 %.",
+      "impact": "Market and stop orders pay taker fees unless you have a discount. Your figure is even below the maker fee."
+    }
+  ],
+  "one_position": {
+    "n_overlapping": 0,
+    "max_concurrent_all_symbols": 2,
+    "declared_one_position_per_symbol": true,
+    "kept_trades": 240,
+    "declared_kept": {
+      "n": 240,
+      "pf": 0.4113551014766473,
+      "mean_net_pct": -0.13176614728308908,
+      "sum_net_pct": -31.623875347941382,
+      "win_rate_pct": 33.33333333333333
+    },
+    "exec_kept": {
+      "n": 240,
+      "pf": 0.33699962949996615,
+      "mean_net_pct": -0.1483399928411138,
+      "sum_net_pct": -35.60159828186731,
+      "win_rate_pct": 31.666666666666664
+    }
+  },
+  "stats": {
+    "dsr_exec": {
+      "T": 240,
+      "SR": -0.4153049631384046,
+      "skew": 0.49437752627154374,
+      "kurt": 4.040520067368279,
+      "PSR0": 1.3972362100656e-08,
+      "MinTRL_vs_0": Infinity,
+      "n_trials": 20,
+      "trials_sr_variance": 0.0041841004184100415,
+      "variance_assumed": true,
+      "SR0": 0.12294657675216948,
+      "DSR": 3.054778652256118e-13,
+      "MinTRL_vs_SR0": Infinity
+    },
+    "dsr_declared": {
+      "T": 240,
+      "SR": -0.3280892992585811,
+      "skew": 1.2583480996985763,
+      "kurt": 7.127627088346973,
+      "PSR0": 2.6948284520600385e-05,
+      "MinTRL_vs_0": Infinity,
+      "n_trials": 20,
+      "trials_sr_variance": 0.0041841004184100415,
+      "variance_assumed": true,
+      "SR0": 0.12294657675216948,
+      "DSR": 1.4181393670487097e-08,
+      "MinTRL_vs_SR0": Infinity
+    },
+    "bootstrap_exec": {
+      "n_days": 60,
+      "block_days": 5,
+      "samples": 2000,
+      "seed": 7,
+      "total_p05_pct": -45.341170695162546,
+      "total_p50_pct": -35.6394091102467,
+      "total_p95_pct": -26.108928870044913,
+      "p_total_le_0": 1.0,
+      "maxdd_p50_pct": 35.987024338204144,
+      "maxdd_p95_pct": 45.56541503291675,
+      "observed_total_pct": -35.60159828186731,
+      "observed_maxdd_pct": 35.65340863247163
+    },
+    "bootstrap_declared": {
+      "n_days": 60,
+      "block_days": 5,
+      "samples": 2000,
+      "seed": 7,
+      "total_p05_pct": -43.088144829346966,
+      "total_p50_pct": -31.728697742083494,
+      "total_p95_pct": -19.957090358500103,
+      "p_total_le_0": 1.0,
+      "maxdd_p50_pct": 32.394151086959134,
+      "maxdd_p95_pct": 43.562505168290585,
+      "observed_total_pct": -31.62387534794137,
+      "observed_maxdd_pct": 33.6769001145674
+    },
+    "concentration_declared": {
+      "sum_pct": -31.623875347941393,
+      "sum_without_top1pct_trades_pct": -35.14279938919058,
+      "n_top1pct": 2,
+      "sum_without_top5pct_trades_pct": -42.807872675134504,
+      "n_top5pct": 12,
+      "sum_without_top5_days_pct": -37.6722194757276
+    },
+    "concentration_exec": {
+      "sum_pct": -35.60159828186731,
+      "sum_without_top1pct_trades_pct": -37.86727910730937,
+      "n_top1pct": 2,
+      "sum_without_top5pct_trades_pct": -43.77372690845198,
+      "n_top5pct": 12,
+      "sum_without_top5_days_pct": -39.47920748864111
+    }
+  },
+  "yearly": [
+    {
+      "year": 2024,
+      "n": 240,
+      "declared_mean_net_pct": -0.13176614728308908,
+      "research_mean_net_pct": -0.13176614728308916,
+      "close_mean_net_pct": -0.15740501761996967,
+      "intrabar_mean_net_pct": -0.14835230113468129,
+      "exec_mean_net_pct": -0.1483399928411138
+    }
+  ],
+  "fees": {
+    "declared_fee_per_side_pct": 0.075,
+    "market": "spot",
+    "maker": 0.1,
+    "taker": 0.1,
+    "below_base_maker": true,
+    "below_base_taker": true
+  },
+  "statuses": {
+    "ok": 240
+  },
+  "sensitivity": [
+    {
+      "extra_cost_per_side_pct": 0.0,
+      "latency_bars": 0,
+      "pf": 0.33699962949996615,
+      "mean_net_pct": -0.1483399928411138
+    },
+    {
+      "extra_cost_per_side_pct": 0.0,
+      "latency_bars": 1,
+      "pf": 0.29679234363618173,
+      "mean_net_pct": -0.1665969102717338
+    },
+    {
+      "extra_cost_per_side_pct": 0.0,
+      "latency_bars": 2,
+      "pf": 0.3004319307245257,
+      "mean_net_pct": -0.16384117882486696
+    },
+    {
+      "extra_cost_per_side_pct": 0.0,
+      "latency_bars": 5,
+      "pf": 0.36028406955711056,
+      "mean_net_pct": -0.14761466495727255
+    },
+    {
+      "extra_cost_per_side_pct": 0.0,
+      "latency_bars": null,
+      "mode": "declared",
+      "pf": 0.4113551014766473,
+      "mean_net_pct": -0.13176614728308908
+    },
+    {
+      "extra_cost_per_side_pct": 0.0,
+      "latency_bars": null,
+      "mode": "research",
+      "pf": 0.41135510147664694,
+      "mean_net_pct": -0.13176614728308916
+    },
+    {
+      "extra_cost_per_side_pct": 0.0,
+      "latency_bars": null,
+      "mode": "intrabar",
+      "pf": 0.33699413684654256,
+      "mean_net_pct": -0.14835230113468129
+    },
+    {
+      "extra_cost_per_side_pct": 0.01,
+      "latency_bars": 0,
+      "pf": 0.29200551831382837,
+      "mean_net_pct": -0.16833999284111378
+    },
+    {
+      "extra_cost_per_side_pct": 0.01,
+      "latency_bars": 1,
+      "pf": 0.258295781289023,
+      "mean_net_pct": -0.1865969102717338
+    },
+    {
+      "extra_cost_per_side_pct": 0.01,
+      "latency_bars": 2,
+      "pf": 0.2590513028238664,
+      "mean_net_pct": -0.18384117882486695
+    },
+    {
+      "extra_cost_per_side_pct": 0.01,
+      "latency_bars": 5,
+      "pf": 0.31471432751529493,
+      "mean_net_pct": -0.1676146649572725
+    },
+    {
+      "extra_cost_per_side_pct": 0.01,
+      "latency_bars": null,
+      "mode": "declared",
+      "pf": 0.36105837187309964,
+      "mean_net_pct": -0.1517661472830891
+    },
+    {
+      "extra_cost_per_side_pct": 0.01,
+      "latency_bars": null,
+      "mode": "research",
+      "pf": 0.3610583718730992,
+      "mean_net_pct": -0.15176614728308918
+    },
+    {
+      "extra_cost_per_side_pct": 0.01,
+      "latency_bars": null,
+      "mode": "intrabar",
+      "pf": 0.291986978463588,
+      "mean_net_pct": -0.16835230113468128
+    },
+    {
+      "extra_cost_per_side_pct": 0.02,
+      "latency_bars": 0,
+      "pf": 0.2537963496409856,
+      "mean_net_pct": -0.18833999284111377
+    },
+    {
+      "extra_cost_per_side_pct": 0.02,
+      "latency_bars": 1,
+      "pf": 0.22518742877073203,
+      "mean_net_pct": -0.20659691027173377
+    },
+    {
+      "extra_cost_per_side_pct": 0.02,
+      "latency_bars": 2,
+      "pf": 0.22356575101075532,
+      "mean_net_pct": -0.20384117882486694
+    },
+    {
+      "extra_cost_per_side_pct": 0.02,
+      "latency_bars": 5,
+      "pf": 0.2751585237660493,
+      "mean_net_pct": -0.1876146649572725
+    },
+    {
+      "extra_cost_per_side_pct": 0.02,
+      "latency_bars": null,
+      "mode": "declared",
+      "pf": 0.3177275004883829,
+      "mean_net_pct": -0.17176614728308906
+    },
+    {
+      "extra_cost_per_side_pct": 0.02,
+      "latency_bars": null,
+      "mode": "research",
+      "pf": 0.3177275004883828,
+      "mean_net_pct": -0.17176614728308917
+    },
+    {
+      "extra_cost_per_side_pct": 0.02,
+      "latency_bars": null,
+      "mode": "intrabar",
+      "pf": 0.2537969557391785,
+      "mean_net_pct": -0.1883523011346813
+    },
+    {
+      "extra_cost_per_side_pct": 0.05,
+      "latency_bars": 0,
+      "pf": 0.1682473293866153,
+      "mean_net_pct": -0.24833999284111377
+    },
+    {
+      "extra_cost_per_side_pct": 0.05,
+      "latency_bars": 1,
+      "pf": 0.15133804110893612,
+      "mean_net_pct": -0.26659691027173377
+    },
+    {
+      "extra_cost_per_side_pct": 0.05,
+      "latency_bars": 2,
+      "pf": 0.1461047146259113,
+      "mean_net_pct": -0.2638411788248669
+    },
+    {
+      "extra_cost_per_side_pct": 0.05,
+      "latency_bars": 5,
+      "pf": 0.18497184589642326,
+      "mean_net_pct": -0.24761466495727252
+    },
+    {
+      "extra_cost_per_side_pct": 0.05,
+      "latency_bars": null,
+      "mode": "declared",
+      "pf": 0.21982219006061515,
+      "mean_net_pct": -0.23176614728308906
+    },
+    {
+      "extra_cost_per_side_pct": 0.05,
+      "latency_bars": null,
+      "mode": "research",
+      "pf": 0.21982219006061485,
+      "mean_net_pct": -0.23176614728308917
+    },
+    {
+      "extra_cost_per_side_pct": 0.05,
+      "latency_bars": null,
+      "mode": "intrabar",
+      "pf": 0.1682453308229568,
+      "mean_net_pct": -0.2483523011346813
+    },
+    {
+      "extra_cost_per_side_pct": 0.1,
+      "latency_bars": 0,
+      "pf": 0.08566265542403147,
+      "mean_net_pct": -0.3483399928411138
+    },
+    {
+      "extra_cost_per_side_pct": 0.1,
+      "latency_bars": 1,
+      "pf": 0.07781922090074392,
+      "mean_net_pct": -0.3665969102717338
+    },
+    {
+      "extra_cost_per_side_pct": 0.1,
+      "latency_bars": 2,
+      "pf": 0.07356144452867897,
+      "mean_net_pct": -0.36384117882486694
+    },
+    {
+      "extra_cost_per_side_pct": 0.1,
+      "latency_bars": 5,
+      "pf": 0.10073782787328224,
+      "mean_net_pct": -0.34761466495727256
+    },
+    {
+      "extra_cost_per_side_pct": 0.1,
+      "latency_bars": null,
+      "mode": "declared",
+      "pf": 0.12410839203530029,
+      "mean_net_pct": -0.3317661472830891
+    },
+    {
+      "extra_cost_per_side_pct": 0.1,
+      "latency_bars": null,
+      "mode": "research",
+      "pf": 0.12410839203530041,
+      "mean_net_pct": -0.33176614728308923
+    },
+    {
+      "extra_cost_per_side_pct": 0.1,
+      "latency_bars": null,
+      "mode": "intrabar",
+      "pf": 0.08565528879401563,
+      "mean_net_pct": -0.3483523011346813
+    },
+    {
+      "extra_cost_per_side_pct": 0.2,
+      "latency_bars": 0,
+      "pf": 0.026126881260716942,
+      "mean_net_pct": -0.5483399928411138
+    },
+    {
+      "extra_cost_per_side_pct": 0.2,
+      "latency_bars": 1,
+      "pf": 0.021099811056611715,
+      "mean_net_pct": -0.5665969102717338
+    },
+    {
+      "extra_cost_per_side_pct": 0.2,
+      "latency_bars": 2,
+      "pf": 0.021423166498560426,
+      "mean_net_pct": -0.563841178824867
+    },
+    {
+      "extra_cost_per_side_pct": 0.2,
+      "latency_bars": 5,
+      "pf": 0.03198591377763592,
+      "mean_net_pct": -0.5476146649572726
+    },
+    {
+      "extra_cost_per_side_pct": 0.2,
+      "latency_bars": null,
+      "mode": "declared",
+      "pf": 0.049601444422414515,
+      "mean_net_pct": -0.531766147283089
+    },
+    {
+      "extra_cost_per_side_pct": 0.2,
+      "latency_bars": null,
+      "mode": "research",
+      "pf": 0.049601444422414924,
+      "mean_net_pct": -0.5317661472830891
+    },
+    {
+      "extra_cost_per_side_pct": 0.2,
+      "latency_bars": null,
+      "mode": "intrabar",
+      "pf": 0.026123347306029245,
+      "mean_net_pct": -0.5483523011346813
+    }
+  ]
+}

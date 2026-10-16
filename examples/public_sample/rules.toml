@@ -1,0 +1,12 @@
+# Declared assumptions of the sample backtest (generic, not a strategy)
+[costs]
+fee_per_side_pct = 0.075   # e.g. a discounted spot taker fee
+
+[exit]
+stop_pct = 0.5
+trail_activation_pct = 0.3
+trail_distance_pct = 0.3
+max_bars = 60
+
+[data]
+market = "spot"

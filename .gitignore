@@ -1,0 +1,42 @@
+# Bar cache (downloaded public market data) - never commit
+.frc_cache/
+*.npz
+*.zip
+*.parquet
+*.pkl
+*.feather
+
+# Generated synthetic bars for the example (regenerate with examples/make_synthetic.py)
+examples/synthetic/bars/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+.coverage
+htmlcov/
+
+# Secrets and local config - never commit
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+secrets*
+credentials*
+
+# Editors / OS
+.idea/
+.vscode/
+desktop.ini
+Thumbs.db
+.DS_Store
+
+# Private inputs: keep your own ledgers out of the repo
+private/
+*_private.csv

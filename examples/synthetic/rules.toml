@@ -1,0 +1,11 @@
+# Declared assumptions of the (synthetic) backtest
+[costs]
+fee_per_side_pct = 0.05
+
+[exit]
+trail_activation_pct = 0.4
+trail_distance_pct = 0.5
+max_bars = 45
+
+[checks]
+one_position_per_symbol = true

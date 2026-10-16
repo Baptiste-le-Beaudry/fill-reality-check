@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fill-reality-check"
+version = "0.1.0"
+description = "Re-simulate a crypto trade ledger on public 1-minute Binance bars and report which fills could not have happened."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.24", "pandas>=2.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+parquet = ["pyarrow>=12"]
+
+[project.scripts]
+fill-reality-check = "fill_reality_check.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
