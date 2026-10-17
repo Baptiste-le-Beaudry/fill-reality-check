@@ -12,7 +12,8 @@ and statistics that depend on assumptions).
 
 It was built after an audit of a real bot: 2,549 trades with a profit factor of 1.38
 became 0.95 once the stops were filled the way a real order would fill them. See
-[docs/case_study.md](docs/case_study.md).
+[docs/case_study.md](docs/case_study.md), or the full write-up on Medium:
+[My crypto bot had a profit factor of 1.38. Then I filled the stops honestly.](https://medium.com/@b.beaudry05/my-crypto-bot-had-a-profit-factor-of-1-38-then-i-filled-the-stops-honestly-bcc7f0a9d67d)
 
 ## What it checks
 
